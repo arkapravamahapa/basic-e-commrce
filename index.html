@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basic E-Commerce</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Configure Tailwind to use Inter font -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                },
+            },
+        }
+    </script>
+    <!-- Import Inter font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Custom styles for transitions and scrollbar */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .modal, .cart-sidebar {
+            transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+        }
+        .modal-content {
+            transition: transform 0.3s ease-in-out;
+        }
+        .cart-content {
+            transition: transform 0.3s ease-in-out;
+        }
+        .modal.hidden .modal-content {
+            transform: scale(0.95);
+        }
+        .cart-sidebar.hidden .cart-content {
+            transform: translateX(100%);
+        }
+        /* Custom scrollbar for cart */
+        .cart-items::-webkit-scrollbar {
+            width: 6px;
+        }
+        .cart-items::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        .cart-items::-webkit-scrollbar-thumb {
+            background: #a8a8a8;
+            border-radius: 10px;
+        }
+        .cart-items::-webkit-scrollbar-thumb:hover {
+            background: #888;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <!-- Header -->
+    <header class="bg-white shadow-md sticky top-0 z-40">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-gray-800">My Store</h1>
+            <button id="cart-button" class="relative rounded-full p-2 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                <!-- Cart Icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                <!-- Cart count badge -->
+                <span id="cart-count" class="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">0</span>
+            </button>
+        </nav>
+    </header>
+
+    <!-- Main Content - Product Grid -->
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <h2 class="text-3xl font-bold text-gray-900 mb-8">Products</h2>
+        <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+            <!-- Product cards will be injected here by JavaScript -->
+        </div>
+    </main>
+
+    <!-- Product Detail Modal -->
+    <div id="product-modal" class="modal hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+        <div class="modal-content bg-white w-full max-w-2xl rounded-lg shadow-2xl overflow-hidden transform scale-100">
+            <!-- Modal Header -->
+            <div class="flex justify-between items-center p-4 border-b">
+                <h3 id="modal-title" class="text-2xl font-semibold text-gray-900">Product Title</h3>
+                <button id="modal-close-btn" class="text-gray-400 hover:text-gray-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <!-- Modal Body -->
+            <div class="p-6">
+                <div class="md:flex">
+                    <div class="md:flex-shrink-0">
+                        <img id="modal-image" class="h-48 w-full object-cover md:w-48 rounded-lg" src="https://placehold.co/400x400/e2e8f0/334155?text=Product" alt="Product Image">
+                    </div>
+                    <div class="mt-4 md:mt-0 md:ml-6">
+                        <p id="modal-description" class="text-gray-600">Product description goes here.</p>
+                        <p id="modal-price" class="text-2xl font-bold text-gray-900 my-4">$0.00</p>
+                        <button id="modal-add-to-cart-btn" class="w-full bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                            Add to Cart
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Shopping Cart Sidebar -->
+    <div id="cart-sidebar" class="cart-sidebar hidden fixed inset-0 bg-black/60 z-50">
+        <div class="cart-content absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl flex flex-col transform">
+            <!-- Cart Header -->
+            <div class="flex justify-between items-center p-5 border-b">
+                <h3 class="text-2xl font-semibold text-gray-900">Your Cart</h3>
+                <button id="cart-close-btn" class="text-gray-400 hover:text-gray-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Cart Body -->
+            <div id="cart-items" class="cart-items flex-1 overflow-y-auto p-5 space-y-4">
+                <!-- Cart items will be injected here -->
+                <!-- Example:
+                <div class="flex items-center justify-between">
+                    <img src="https..."" alt="Product" class="w-16 h-16 rounded-lg object-cover">
+                    <div class="flex-1 mx-3">
+                        <h4 class="font-semibold">Product Name</h4>
+                        <p class="text-gray-600">$25.00 x 1</p>
+                    </div>
+                    <button class="text-red-500 hover:text-red-700">&times;</button>
+                </div>
+                -->
+                <p id="cart-empty-msg" class="text-gray-500 text-center">Your cart is empty.</p>
+            </div>
+
+            <!-- Cart Footer -->
+            <div class="p-5 border-t bg-gray-50">
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-lg font-semibold text-gray-900">Subtotal:</span>
+                    <span id="cart-total" class="text-xl font-bold text-gray-900">$0.00</span>
+                </div>
+                <button id="checkout-btn" class="w-full bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                    Proceed to Checkout
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Thank You Message (Modal) -->
+    <div id="thank-you-message" class="modal hidden fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4">
+        <div class="modal-content bg-white w-full max-w-sm rounded-lg shadow-2xl p-6 text-center transform scale-100">
+            <h3 class="text-2xl font-semibold text-green-600 mb-4">Thank You!</h3>
+            <p class="text-gray-700 mb-6">Your order has been (mock) placed successfully.</p>
+            <button id="thank-you-close-btn" class="w-full bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+                Close
+            </button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- STATE ---
+            const products = [
+                {
+                    id: 1,
+                    name: "Classic T-Shirt",
+                    price: 25.00,
+                    description: "A 100% cotton classic t-shirt. Soft, durable, and perfect for everyday wear. Available in multiple colors.",
+                    imageUrl: "https://placehold.co/400x400/e0e7ff/3730a3?text=T-Shirt"
+                },
+                {
+                    id: 2,
+                    name: "Leather Wallet",
+                    price: 49.99,
+                    description: "A genuine leather wallet with 6 card slots, a cash compartment, and a slim profile. Built to last.",
+                    imageUrl: "https://placehold.co/400x400/f3e8ff/581c87?text=Wallet"
+                },
+                {
+                    id: 3,
+                    name: "Wireless Earbuds",
+                    price: 129.50,
+                    description: "High-fidelity wireless earbuds with active noise cancellation and a 24-hour charging case. Pure sound, no wires.",
+                    imageUrl: "https://placehold.co/400x400/dcfce7/14532d?text=Earbuds"
+                },
+                {
+                    id: 4,
+                    name: "Coffee Mug",
+                    price: 15.00,
+                    description: "A sturdy 12oz ceramic mug, perfect for your morning coffee or evening tea. Microwave and dishwasher safe.",
+                    imageUrl: "https://placehold.co/400x400/fffbeb/b45309?text=Mug"
+                }
+            ];
+
+            let cart = []; // Format: { id, name, price, quantity, imageUrl }
+
+            // --- DOM ELEMENTS ---
+            const productGrid = document.getElementById('product-grid');
+            const cartButton = document.getElementById('cart-button');
+            const cartCount = document.getElementById('cart-count');
+            
+            // Product Modal
+            const productModal = document.getElementById('product-modal');
+            const modalCloseBtn = document.getElementById('modal-close-btn');
+            const modalTitle = document.getElementById('modal-title');
+            const modalImage = document.getElementById('modal-image');
+            const modalDescription = document.getElementById('modal-description');
+            const modalPrice = document.getElementById('modal-price');
+            const modalAddToCartBtn = document.getElementById('modal-add-to-cart-btn');
+
+            // Cart Sidebar
+            const cartSidebar = document.getElementById('cart-sidebar');
+            const cartCloseBtn = document.getElementById('cart-close-btn');
+            const cartItemsContainer = document.getElementById('cart-items');
+            const cartEmptyMsg = document.getElementById('cart-empty-msg');
+            const cartTotal = document.getElementById('cart-total');
+            const checkoutBtn = document.getElementById('checkout-btn');
+
+            // Thank You Message
+            const thankYouMessage = document.getElementById('thank-you-message');
+            const thankYouCloseBtn = document.getElementById('thank-you-close-btn');
+
+
+            // --- FUNCTIONS ---
+
+            /**
+             * Renders all products to the grid.
+             */
+            function renderProducts() {
+                productGrid.innerHTML = ''; // Clear existing products
+                products.forEach(product => {
+                    const productCard = document.createElement('div');
+                    productCard.className = 'bg-white rounded-lg shadow-md overflow-hidden transition-shadow duration-300 hover:shadow-xl';
+                    productCard.innerHTML = `
+                        <img src="${product.imageUrl}" alt="${product.name}" class="w-full h-56 object-cover">
+                        <div class="p-5">
+                            <h3 class="text-xl font-semibold text-gray-800 mb-2">${product.name}</h3>
+                            <p class="text-lg font-bold text-gray-900 mb-4">$${product.price.toFixed(2)}</p>
+                            <div class="flex space-x-2">
+                                <button data-id="${product.id}" class="btn-details flex-1 bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors">
+                                    View Details
+                                </button>
+                                <button data-id="${product.id}" class="btn-add-cart flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors">
+                                    Add to Cart
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    productGrid.appendChild(productCard);
+                });
+            }
+
+            /**
+             * Shows the product detail modal.
+             * @param {number} productId - The ID of the product to show.
+             */
+            function showProductModal(productId) {
+                const product = products.find(p => p.id === productId);
+                if (!product) return;
+
+                modalTitle.textContent = product.name;
+                modalImage.src = product.imageUrl;
+                modalImage.alt = product.name;
+                modalDescription.textContent = product.description;
+                modalPrice.textContent = `$${product.price.toFixed(2)}`;
+                modalAddToCartBtn.dataset.id = product.id; // Store id for add to cart
+
+                productModal.classList.remove('hidden');
+                productModal.classList.add('flex');
+            }
+
+            /**
+             * Hides the product detail modal.
+             */
+            function hideProductModal() {
+                productModal.classList.add('hidden');
+                productModal.classList.remove('flex');
+            }
+            
+            /**
+             * Shows the cart sidebar.
+             */
+            function showCart() {
+                cartSidebar.classList.remove('hidden');
+            }
+
+            /**
+             * Hides the cart sidebar.
+             */
+            function hideCart() {
+                cartSidebar.classList.add('hidden');
+            }
+
+            /**
+             * Adds an item to the cart.
+             * @param {number} productId - The ID of the product to add.
+             */
+            function addToCart(productId) {
+                const product = products.find(p => p.id === productId);
+                if (!product) return;
+
+                const existingItem = cart.find(item => item.id === productId);
+
+                if (existingItem) {
+                    existingItem.quantity++;
+                } else {
+                    cart.push({
+                        id: product.id,
+                        name: product.name,
+                        price: product.price,
+                        imageUrl: product.imageUrl,
+                        quantity: 1
+                    });
+                }
+                updateCartDisplay();
+            }
+            
+            /**
+             * Removes an item from the cart.
+             * @param {number} productId - The ID of the product to remove.
+             */
+            function removeFromCart(productId) {
+                cart = cart.filter(item => item.id !== productId);
+                updateCartDisplay();
+            }
+
+            /**
+             * Updates the cart display (count, items list, total).
+             */
+            function updateCartDisplay() {
+                // Update cart count badge
+                const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+                cartCount.textContent = totalItems;
+
+                // Update cart items list
+                if (cart.length === 0) {
+                    cartEmptyMsg.classList.remove('hidden');
+                    cartItemsContainer.innerHTML = ''; // Clear items but keep empty message
+                    cartItemsContainer.appendChild(cartEmptyMsg);
+                } else {
+                    cartEmptyMsg.classList.add('hidden');
+                    cartItemsContainer.innerHTML = ''; // Clear all
+                    cart.forEach(item => {
+                        const cartItemEl = document.createElement('div');
+                        cartItemEl.className = 'flex items-center justify-between pb-4 border-b border-gray-200 last:border-b-0';
+                        cartItemEl.innerHTML = `
+                            <img src="${item.imageUrl}" alt="${item.name}" class="w-16 h-16 rounded-lg object-cover shadow-sm">
+                            <div class="flex-1 mx-3">
+                                <h4 class="font-semibold text-gray-800">${item.name}</h4>
+                                <p class="text-gray-600">$${item.price.toFixed(2)} &times; ${item.quantity}</p>
+                            </div>
+                            <button data-id="${item.id}" class="btn-remove-cart text-red-500 hover:text-red-700 text-2xl font-bold">&times;</button>
+                        `;
+                        cartItemsContainer.appendChild(cartItemEl);
+                    });
+                }
+                
+                // Update cart total
+                const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                cartTotal.textContent = `$${total.toFixed(2)}`;
+            }
+
+            /**
+             * Handles the (mock) checkout process.
+             */
+            function handleCheckout() {
+                if (cart.length === 0) return;
+                
+                hideCart();
+                thankYouMessage.classList.remove('hidden');
+                thankYouMessage.classList.add('flex');
+                
+                // Reset cart
+                cart = [];
+                updateCartDisplay();
+            }
+            
+            /**
+             * Hides the thank you message.
+             */
+            function hideThankYouMessage() {
+                thankYouMessage.classList.add('hidden');
+                thankYouMessage.classList.remove('flex');
+            }
+
+
+            // --- EVENT LISTENERS ---
+            
+            // Product grid event delegation
+            productGrid.addEventListener('click', (e) => {
+                const target = e.target;
+                if (target.classList.contains('btn-details')) {
+                    const id = Number(target.dataset.id);
+                    showProductModal(id);
+                } else if (target.classList.contains('btn-add-cart')) {
+                    const id = Number(target.dataset.id);
+                    addToCart(id);
+                    // Give visual feedback (optional)
+                    target.textContent = 'Added!';
+                    setTimeout(() => { target.textContent = 'Add to Cart'; }, 1000);
+                }
+            });
+
+            // Modal listeners
+            modalCloseBtn.addEventListener('click', hideProductModal);
+            productModal.addEventListener('click', (e) => {
+                if (e.target === productModal) {
+                    hideProductModal();
+                }
+            });
+            modalAddToCartBtn.addEventListener('click', (e) => {
+                const id = Number(e.target.dataset.id);
+                addToCart(id);
+                hideProductModal();
+                showCart();
+            });
+
+            // Cart listeners
+            cartButton.addEventListener('click', showCart);
+            cartCloseBtn.addEventListener('click', hideCart);
+            cartSidebar.addEventListener('click', (e) => {
+                if (e.target === cartSidebar) {
+                    hideCart();
+                }
+            });
+            checkoutBtn.addEventListener('click', handleCheckout);
+            
+            // Cart items event delegation (for remove buttons)
+            cartItemsContainer.addEventListener('click', (e) => {
+                if (e.target.classList.contains('btn-remove-cart')) {
+                    const id = Number(e.target.dataset.id);
+                    removeFromCart(id);
+                }
+            });
+            
+            // Thank you message listener
+            thankYouCloseBtn.addEventListener('click', hideThankYouMessage);
+            thankYouMessage.addEventListener('click', (e) => {
+                if (e.target === thankYouMessage) {
+                    hideThankYouMessage();
+                }
+            });
+
+            // --- INITIALIZE ---
+            renderProducts();
+            updateCartDisplay(); // To show 'cart is empty' on load
+        });
+    </script>
+</body>
+</html>
